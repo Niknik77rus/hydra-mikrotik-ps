@@ -1,7 +1,9 @@
-from mt_hydra_logic import MtHydraLogic
-from tikapyclients import TikapyClient
+from mt_hydra_logic import *
 from mt_hydra_config import *
+from mt_hydra_controller import MtCheckParams, MtLogger
+from tikapyclients import TikapyClient
 import argparse
+import sys
 
 
 parser = argparse.ArgumentParser()
@@ -19,38 +21,53 @@ parser.add_argument("--rate_limit_out",
 args = parser.parse_args()
 clientip = args.ip
 ul = args.rate_limit_out
-dl = args.rate_limit_out
+dl = args.rate_limit_in
 action = args.action
 state = args.state
 
-try:
-    print("Trying to connect")
-    apiclient = TikapyClient(ipmikrotik, apiport)
-except:
-    print("WARNING! no connection to the router! Check IP-address reachability and API status on the router")
 
-else:
+checker = MtCheckParams(clientip, ul, dl, state, action)
+mtlog = MtLogger(clientip)
+
+
+def check_params():
+    if checker.check_action(action) and \
+       checker.check_state(state) and \
+       checker.check_ip(clientip):
+        return True
+
+
+ip_list = neg_bal_list
+
+if check_params():
     try:
+        mtlog.log_entry("Trying to connect")
+        apiclient = TikapyClient(ipmikrotik, apiport)
         apiclient.login(user, pwd)
     except:
-        print("WARNING! Login unsucsessful. Please, check your credentials and restart the script.")
+        mtlog.log_entry("WARNING! no connection to IP or API. Either login failed.")
+        sys.exit(1)
     else:
-        print("\nLogin successful")
-        mt = MtHydraLogic()
+        mtlog.log_entry("Success. Login OK")
+        mt = MtHydraLogic(apiclient, clientip)
         if action == 'on':
-            mt.mt_create(apiclient, clientip, ul, dl, white_list)
+            checker.check_rate(ul) and checker.check_rate(dl)
+            mt.mt_create(ul, dl, ip_list)
         elif action == 'change':
-            pass
-        #NNK WARNING! completely delete sub from NAS!
+            if state in ['SERV_STATE_InsufficientFunds', 'SERV_STATE_NonPaySuspension',
+                         'SERV_STATE_Restricted', 'SERV_STATE_TemporalSuspension']:
+                mt.mt_modify_iplist(neg_bal_list)
+            if state == 'SERV_STATE_Provision':
+                if ul is not None and dl is not None:
+                    if checker.check_rate(ul) and checker.check_rate(dl):
+                        mt.mt_modify_queue(ul, dl)
+                    else:
+                        mtlog.log_entry("WARNING! queue params check failed")
+                        sys.exit(1)
+                else:
+                    mt.mt_modify_iplist(white_list)
         elif action == 'off':
-            mt.mt_remove(apiclient, clientip)
-
-        #print(mt.get_ipclient_list(apiclient, "1.1.1.0/24"))
-        #print(mt.add_queue(apiclient, "3.2.2.2/32", "1M", "2M"))
-        #print(mt.add_ipclient_list(apiclient, "3.2.2.2/32", white_list))
-        #print(mt.rmv_queue(apiclient, "3.2.2.2/32"))
-        #print(mt.rmv_ipclient_list(apiclient, "3.2.2.2"))
-        #print(mt.mod_queue(apiclient, "1.1.1.1/32", "1M", "3M"))
-        #mt.mt_modify_iplist(apiclient, "7.7.7.7", 'test')
-        #mt.mt_remove(apiclient, "7.7.7.7/32")
-
+            mt.mt_remove()
+else:
+    mtlog.log_entry("WARNING! params check failed")
+    sys.exit(1)

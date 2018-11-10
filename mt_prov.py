@@ -30,44 +30,42 @@ checker = MtCheckParams(clientip, ul, dl, state, action)
 mtlog = MtLogger(clientip)
 
 
-def check_params():
-    if checker.check_action(action) and \
-       checker.check_state(state) and \
-       checker.check_ip(clientip):
-        return True
-
-
 ip_list = neg_bal_list
 
-if check_params():
+if checker.check_action(action) and checker.check_ip(clientip):
     try:
         mtlog.log_entry("Trying to connect")
+        print("Trying to connect")
         apiclient = TikapyClient(ipmikrotik, apiport)
         apiclient.login(user, pwd)
     except:
-        mtlog.log_entry("WARNING! no connection to IP or API. Either login failed.")
+        mtlog.log_entry("Fail! no connection to IP or API. Either login failed.")
+        sys.stderr.write("Fail! no connection to IP or API. Either login failed. \n")
         sys.exit(1)
     else:
         mtlog.log_entry("Success. Login OK")
+        print("Success. Login OK")
         mt = MtHydraLogic(apiclient, clientip)
         if action == 'on':
             checker.check_rate(ul) and checker.check_rate(dl)
             mt.mt_create(ul, dl, ip_list)
         elif action == 'change':
             if state in ['SERV_STATE_InsufficientFunds', 'SERV_STATE_NonPaySuspension',
-                         'SERV_STATE_Restricted', 'SERV_STATE_TemporalSuspension']:
+                         'SERV_STATE_TemporalSuspension']:
                 mt.mt_modify_iplist(neg_bal_list)
-            if state == 'SERV_STATE_Provision':
+            elif state in ['SERV_STATE_Provision', 'SERV_STATE_Restricted']:
                 if ul is not None and dl is not None:
                     if checker.check_rate(ul) and checker.check_rate(dl):
                         mt.mt_modify_queue(ul, dl)
+                        mt.mt_modify_iplist(white_list)
                     else:
-                        mtlog.log_entry("WARNING! queue params check failed")
+                        mtlog.log_entry("Error! queue params check failed")
+                        sys.stderr.write("Error! queue params check failed \n")
                         sys.exit(1)
                 else:
                     mt.mt_modify_iplist(white_list)
         elif action == 'off':
             mt.mt_remove()
 else:
-    mtlog.log_entry("WARNING! params check failed")
+    mtlog.log_entry("Error! params check failed \n")
     sys.exit(1)

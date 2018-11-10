@@ -7,11 +7,12 @@ class MtLogger:
     def __init__(self, clientip):
         self.clientip = clientip
         self.logger = logging.getLogger("mainLog")
-        self.fh = logging.FileHandler(mt_hydra_config.log)
-        self.formatter = logging.Formatter('%(asctime)-15s %(clientip)-15s' '%(message)s')
-        self.fh.setFormatter(self.formatter)
-        self.logger.addHandler(self.fh)
-        self.logger.setLevel(logging.INFO)
+        if not len(self.logger.handlers):
+            self.fh = logging.FileHandler(mt_hydra_config.log)
+            self.formatter = logging.Formatter('%(asctime)-15s %(clientip)-15s' '%(message)s')
+            self.fh.setFormatter(self.formatter)
+            self.logger.addHandler(self.fh)
+            self.logger.setLevel(logging.INFO)
 
     def log_entry(self, msg):
         addition = {"clientip": self.clientip}
@@ -23,6 +24,8 @@ class MtHydra:
 
     def __init__(self, apiclient, clientip):
         self.clientip = clientip
+        if '/' not in self.clientip:
+            self.clientip = clientip + '/32'
         self.mtlog = MtLogger(clientip)
         self.apiclient = apiclient
 
@@ -30,11 +33,13 @@ class MtHydra:
         try:
             res = self.apiclient.talk(["/queue/simple/print", "?target=" + self.clientip, "=.proplist=.id"])
         except:
-            self.mtlog.log_entry('EXCEPTION could not get clients QUEUE for {}'.format(self.clientip))
+            self.mtlog.log_entry('Warning! cannot get clients QUEUE for {}'.format(self.clientip))
             self.mtlog.log_entry('EXCEPTION - {}'.format(res))
+            sys.stderr.write("Warning! cannot get clients queue\n")
             sys.exit(1)
         else:
-            self.mtlog.log_entry('clients QUEUE position found at - {}'.format(res))
+            self.mtlog.log_entry('Success. Clients QUEUE position found at - {}'.format(res))
+            print('Success. Clients QUEUE position found at - {}'.format(res))
             return res
 
     def get_ipclient_list(self):
@@ -43,11 +48,13 @@ class MtHydra:
         try:
             res = self.apiclient.talk(["/ip/firewall/address-list/print", "?address=" + clientip, "=.proplist=.id"])
         except:
-            self.mtlog.log_entry('EXCEPTION could not get clients IP list position for {}'.format(self.clientip))
+            self.mtlog.log_entry('Warning! cannot get clients IP list position for {}'.format(self.clientip))
             self.mtlog.log_entry('EXCEPTION - {}'.format(res))
+            sys.stderr.write('Warning! cannot get clients IP list position\n')
             sys.exit(1)
         else:
-            self.mtlog.log_entry('clients IP position found at - {}'.format(res))
+            self.mtlog.log_entry('Success. clients IP position was found at - {}'.format(res))
+            print('Success. clients IP position was found at - {}'.format(res))
             return res
 
     def add_queue(self, ul, dl):
@@ -57,11 +64,13 @@ class MtHydra:
             res = self.apiclient.talk(["/queue/simple/add",
                                        "=target=" + self.clientip, "=max-limit=" + ul + "/" + dl, "=.proplist=.id"])
         except:
-            self.mtlog.log_entry('EXCEPTION could not add QUEUE for {}'.format(self.clientip))
+            self.mtlog.log_entry('Fail! cannot add QUEUE for {}'.format(self.clientip))
             self.mtlog.log_entry('EXCEPTION - {}'.format(res))
+            sys.stderr.write('Fail! cannot add QUEUE for {} \n'.format(self.clientip))
             sys.exit(1)
         else:
-            self.mtlog.log_entry('clients QUEUE was added at - {}'.format(res))
+            self.mtlog.log_entry('Success. Clients QUEUE was added at - {}'.format(res))
+            print('Success. Clients QUEUE was added at - {}'.format(res))
             return res
 
     def add_ipclient_list(self, list_name):
@@ -69,11 +78,13 @@ class MtHydra:
             res = self.apiclient.talk(["/ip/firewall/address-list/add", \
                                        "=address=" + self.clientip, "=list=" + list_name, "=.proplist=.id"])
         except:
-            self.mtlog.log_entry('EXCEPTION could not add IP list entry for {}'.format(self.clientip))
+            self.mtlog.log_entry('Fail! cannot add IP list entry for {}'.format(self.clientip))
             self.mtlog.log_entry('EXCEPTION - {}'.format(res))
+            sys.stderr.write('Fail! cannot add QUEUE for {} \n'.format(self.clientip))
             sys.exit(1)
         else:
-            self.mtlog.log_entry('clients IP was added to list - {}'.format(list_name))
+            self.mtlog.log_entry('Success. Clients IP was added to list - {}'.format(list_name))
+            print('Success. Clients IP was added to list - {}'.format(list_name))
             return res
 
     def mod_queue(self, ul, dl):
@@ -86,14 +97,18 @@ class MtHydra:
             try:
                 res = self.apiclient.talk(["/queue/simple/set", "=max-limit=" + ul + "/" + dl, "=.id=" + queue_id, ])
             except:
-                self.mtlog.log_entry('EXCEPTION could not modify QUEUE entry for {}'.format(self.clientip))
+                self.mtlog.log_entry('Fail! cannot modify QUEUE entry for {}'.format(self.clientip))
                 self.mtlog.log_entry('EXCEPTION - {}'.format(res))
+                sys.stderr.write('Fail! cannot modify QUEUE entry for {} \n'.format(self.clientip))
                 sys.exit(1)
             else:
-                self.mtlog.log_entry('clients new QUEUE params - UL {} DL {}'.format(ul, dl))
+                self.mtlog.log_entry('Success. Clients new QUEUE params - UL {} DL {}'.format(ul, dl))
+                print('Success. Clients new QUEUE params - UL {} DL {}'.format(ul, dl))
+
                 return res
         else:
-            self.mtlog.log_entry('EXCEPTION old QUEUE entry for {} was not found'.format(self.clientip))
+            self.mtlog.log_entry('Fail! QUEUE entry for {} was not found. Nothing to change'.format(self.clientip))
+            sys.stderr.write('Fail! QUEUE entry for {} was not found. Nothing to change \n'.format(self.clientip))
             sys.exit(1)
 
 
@@ -106,14 +121,17 @@ class MtHydra:
                 res = self.apiclient.talk(["/ip/firewall/address-list/set",
                                       "=list=" + list_name, "=.id=" + ipclient_list_id, ])
             except:
-                self.mtlog.log_entry('EXCEPTION could not modify IP list entry for {}'.format(self.clientip))
+                self.mtlog.log_entry('Fail! cannot modify IP list entry for {}'.format(self.clientip))
                 self.mtlog.log_entry('EXCEPTION - {}'.format(res))
+                sys.stderr.write('Fail! cannot modify IP list entry for {} \n'.format(self.clientip))
                 sys.exit(1)
             else:
-                self.mtlog.log_entry('clients new IP list - {}'.format(list_name))
+                self.mtlog.log_entry('Success. Clients new IP list - {}'.format(list_name))
+                print('Success. Clients new IP list - {}'.format(list_name))
                 return res
         else:
-            self.mtlog.log_entry('EXCEPTION old IP list entry for {} was not found'.format(self.clientip))
+            self.mtlog.log_entry('Fail! IP list entry for {} was not found'.format(self.clientip))
+            sys.stderr.write('Fail! IP list entry for {} was not found \n'.format(self.clientip))
             sys.exit(1)
 
     def rmv_queue(self):
@@ -124,14 +142,17 @@ class MtHydra:
             try:
                 res = self.apiclient.talk(["/queue/simple/remove", "=.id=" + queue_id, ])
             except:
-                self.mtlog.log_entry('EXCEPTION could not remove QUEUE for {}'.format(self.clientip))
+                self.mtlog.log_entry('Fail! cannot remove QUEUE for {}'.format(self.clientip))
                 self.mtlog.log_entry('EXCEPTION - {}'.format(res))
+                sys.stderr.write('Fail! cannot remove QUEUE for {} \n'.format(self.clientip))
                 sys.exit(1)
             else:
-                self.mtlog.log_entry(' - QUEUE for {} was removed'.format(self.clientip))
+                self.mtlog.log_entry('Success. QUEUE for {} was removed'.format(self.clientip))
+                print('Success. QUEUE for {} was removed'.format(self.clientip))
                 return res
         else:
-            self.mtlog.log_entry(' - QUEUE for {} did not exist'.format(self.clientip))
+            self.mtlog.log_entry('Warning! QUEUE for {} did not exist'.format(self.clientip))
+            print('Warning! QUEUE for {} did not exist'.format(self.clientip))
             return queue
 
     def rmv_ipclient_list(self):
@@ -142,14 +163,17 @@ class MtHydra:
             try:
                 res = self.apiclient.talk(["/ip/firewall/address-list/remove", "=.id=" + ipclient_list_id, ])
             except:
-                self.mtlog.log_entry('EXCEPTION could not remove IP list entry for {}'.format(self.clientip))
+                self.mtlog.log_entry('Fail! cannot remove IP list entry for {}'.format(self.clientip))
                 self.mtlog.log_entry('EXCEPTION - {}'.format(res))
+                sys.stderr.write('Fail! cannot remove IP list entry for {} \n'.format(self.clientip))
                 sys.exit(1)
             else:
-                self.mtlog.log_entry(' - IP list entry for {} was removed'.format(self.clientip))
+                self.mtlog.log_entry('Success. IP list entry for {} was removed'.format(self.clientip))
+                print('Success. IP list entry for {} was removed'.format(self.clientip))
                 return res
         else:
-            self.mtlog.log_entry(' - IP list entry for {} did not exist'.format(self.clientip))
+            self.mtlog.log_entry('Warning! IP list entry for {} did not exist'.format(self.clientip))
+            print('Warning! IP list entry for {} did not exist'.format(self.clientip))
             return ipclient_list
 
 
@@ -166,7 +190,8 @@ class MtCheckParams:
         try:
             int(rate)
         except:
-            self.mtlog.log_entry('{} - wrong RATE format'.format(rate))
+            self.mtlog.log_entry('Error! {} - wrong RATE format'.format(rate))
+            sys.stderr.write('Error! {} - wrong RATE format \n'.format(rate))
             sys.exit(1)
         else:
             return True
@@ -175,7 +200,8 @@ class MtCheckParams:
         try:
             ipaddress.ip_network(clientip)
         except:
-            self.mtlog.log_entry('IP/CIDR {} is not valid'.format(clientip))
+            self.mtlog.log_entry('Error! IP/CIDR {} is not valid'.format(clientip))
+            sys.stderr.write('Error! IP/CIDR {} is not valid \n'.format(clientip))
             sys.exit(1)
         else:
             return True
@@ -184,13 +210,14 @@ class MtCheckParams:
         if state in mt_hydra_config.state_list:
             return True
         else:
-            self.mtlog.log_entry('{} - no such STATE available'.format(state))
-
+            self.mtlog.log_entry('Error! {} - no such STATE available'.format(state))
+            sys.stderr.write('Error! {} - no such STATE available \n'.format(state))
             sys.exit(1)
 
     def check_action(self, action):
         if action in mt_hydra_config.action_list:
             return True
         else:
-            self.mtlog.log_entry('{} - no such ACTION available'.format(action))
+            self.mtlog.log_entry('Error! {} - no such ACTION available'.format(action))
+            sys.stderr.write('Error! {} - no such ACTION available \n'.format(action))
             sys.exit(1)

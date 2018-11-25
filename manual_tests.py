@@ -1,4 +1,3 @@
-
 # -*- coding: utf-8 -*-
 from mt_hydra_logic import *
 from mt_hydra_controller import MtCheckParams
@@ -26,9 +25,9 @@ dl = args.rate_limit_out
 action = args.action
 state = args.state
 
-ipmikrotik = "91.228.118.4"
+ipmikrotik = ""
 user = "nnk"
-pwd = "Winter@2017"
+pwd = ""
 white_list = "hydra_auth_list"
 neg_bal_list = "hydra_negbal_list"
 blocked_list = "hydra_blocked_list"
@@ -40,10 +39,10 @@ action_list =  ["on", "modify", "off"]
 
 
 
-chk = MtCheckParams(clientip, ul, dl, state, action)
+#chk = MtCheckParams(clientip, ul, dl, state, action)
 #chk.check_state("off", "1.2.2.2")
 #chk.check_rate("250k", "1.2.2.2")
-chk.check_ip("off")
+#chk.check_ip("off")
 
 
 try:
@@ -60,34 +59,36 @@ else:
         print("WARNING! Login unsucsessful. Please, check your credentials and restart the script.")
     else:
         print("\nLogin successful")
-
-        res = apiclient.talk(["/queue/simple/print", "?target=" + self.clientip, ])
-
-
-        mt = MtHydraLogic()
+        #res = apiclient.talk(["/queue/simple/print", "?target=" + clientip, ])
+        #mt = MtHydraLogic()
         if action == 'on':
-            mt.mt_create(apiclient, clientip, ul, dl, white_list)
+            #mt.mt_create(apiclient, clientip, ul, dl, white_list)
+            pass
 
         elif action == 'change':
             pass
         #NNK WARNING! completely delete sub from NAS!
         elif action == 'off':
-            mt.mt_remove(apiclient, clientip)
+            pass
+            #mt.mt_remove(apiclient, clientip)
         else:
             pass
 
-        mth = MtHydra("3.2.2.2/32")
-        #print(mt.get_ipclient_list(apiclient, "1.1.1.0/24"))
-        #print(mth.get_ipclient_list(apiclient, "4.4.4.4"))
+        mth = MtHydraLogic(apiclient, "8.8.8.8,2.2.2.0/28,3.2.2.0/28")
+        #mth.mt_create(500,700, white_list)
+        #mth.mt_remove()
+        #mth.mt_modify_queue(800,9000)
+        #mth.mt_modify_iplist(neg_bal_list)
+        #mth.mt_modify_ip_set("1.1.1.1,2.2.2.0/28,3.2.2.0/28")
 
-        #print(mth.get_queue(apiclient))
-        #print(mth.add_queue(apiclient, "3.2.2.2/32", "1M", "2M"))
-        #print(mt.add_ipclient_list(apiclient, "3.2.2.2/32", white_list))
-        #print(mt.rmv_queue(apiclient, "3.2.2.2/32"))
-        #print(mt.rmv_ipclient_list(apiclient, "3.2.2.2"))
-        #print(mt.mod_queue(apiclient, "1.1.1.1/32", "1M", "3M"))
-        #mt.mt_modify_iplist(apiclient, "7.7.7.7", 'test')
-        #mt.mt_remove(apiclient, "7.7.7.7/32")
-        #mt.mt_create(apiclient, '8.8.8.8', '256K', '320K', white_list)
-
-
+        #mth = MtHydra(apiclient, "4.4.4.4/32,2.2.2.0/28,3.2.2.0/28")
+        #mth.add_ipclient_list(white_list)
+        #mth.add_queue('100', '200')
+        #mth.get_ipclient_list()
+        #mth.get_queue()
+        #mth.mod_queue(500,700)
+        #mth.mod_ipclient_list(neg_bal_list)
+        #mth.rmv_queue()
+        #mth.rmv_ipclient_list()
+        #mth.get_list_name("1.1.1.1,2.2.2.0/28,3.2.2.0/28")
+        #mth.mod_queue_target("1.1.1.1/32,2.2.2.0/28,3.2.2.0/28")

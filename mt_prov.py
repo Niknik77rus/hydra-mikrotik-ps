@@ -17,6 +17,8 @@ parser.add_argument("--rate_limit_in",
                     help="subscribers rate-limit-in")
 parser.add_argument("--rate_limit_out",
                     help="subscribers rate-limit-out")
+parser.add_argument("--old_ip",
+                    help="subscribers old ip list")
 
 args = parser.parse_args()
 clientip = args.ip
@@ -24,6 +26,7 @@ ul = args.rate_limit_out
 dl = args.rate_limit_in
 action = args.action
 state = args.state
+old_ip = args.old_ip
 
 
 checker = MtCheckParams(clientip, ul, dl, state, action)
@@ -48,9 +51,15 @@ if checker.check_action(action) and checker.check_ip(clientip):
         mt = MtHydraLogic(apiclient, clientip)
         if action == 'on':
             checker.check_rate(ul) and checker.check_rate(dl)
-            mt.mt_create(ul, dl, ip_list)
-        elif action == 'change':
             if state in ['SERV_STATE_InsufficientFunds', 'SERV_STATE_NonPaySuspension',
+                         'SERV_STATE_TemporalSuspension']:
+                mt.mt_create(ul, dl, neg_bal_list)
+            else:
+                mt.mt_create(ul, dl, white_list)
+        elif action == 'change':
+            if old_ip is not None:
+                mt.mt_modify_ip_set(old_ip)
+            elif state in ['SERV_STATE_InsufficientFunds', 'SERV_STATE_NonPaySuspension',
                          'SERV_STATE_TemporalSuspension']:
                 mt.mt_modify_iplist(neg_bal_list)
             elif state in ['SERV_STATE_Provision', 'SERV_STATE_Restricted']:

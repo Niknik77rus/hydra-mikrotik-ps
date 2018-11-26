@@ -28,10 +28,12 @@ action = args.action
 state = args.state
 old_ip = args.old_ip
 
+if len(clientip) < 2:
+    sys.stderr.write("Info. Dummy call. Empty list of IP addresses. \n")
+    sys.exit(0)
 
 checker = MtCheckParams(clientip, ul, dl, state, action)
 mtlog = MtLogger(clientip)
-
 
 ip_list = neg_bal_list
 

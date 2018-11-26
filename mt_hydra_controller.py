@@ -39,8 +39,8 @@ class MtHydra:
             sys.stderr.write("Warning! cannot get clients queue\n")
             sys.exit(1)
         else:
-            self.mtlog.log_entry('Success. Clients QUEUE position found at - {}'.format(res))
-            print('Success. Clients QUEUE position found at - {}'.format(res))
+            self.mtlog.log_entry('Info. Clients QUEUE position found at - {}'.format(res))
+            print('Info. Clients QUEUE position found at - {}'.format(res))
             return res
 
     def get_ipclient_list(self):
@@ -57,8 +57,8 @@ class MtHydra:
                 sys.stderr.write('Warning! cannot get clients IP list position\n')
                 sys.exit(1)
             else:
-                self.mtlog.log_entry('Success. clients IP position was found at - {}'.format(res))
-                print('Success. clients IP position was found at - {}'.format(res))
+                self.mtlog.log_entry('Info. clients IP position was found at - {}'.format(res))
+                print('Info. clients IP position was found at - {}'.format(res))
                 res_list.append(res)
         return res_list
 
@@ -76,8 +76,8 @@ class MtHydra:
         else:
             key = list(res.keys())[0]
             listname = res[key]['list']
-            self.mtlog.log_entry('Success. found clients LIST NAME - {}'.format(listname))
-            print('Success. found clients LIST NAME - {}'.format(listname))
+            self.mtlog.log_entry('Info. found clients LIST NAME - {}'.format(listname))
+            print('Info. found clients LIST NAME - {}'.format(listname))
             return listname
 
     def add_queue(self, ul, dl):
@@ -93,8 +93,8 @@ class MtHydra:
             sys.stderr.write('Fail! cannot add QUEUE for {} \n'.format(target))
             sys.exit(1)
         else:
-            self.mtlog.log_entry('Success. Clients QUEUE was added at - {}'.format(res))
-            print('Success. Clients QUEUE was added at - {}'.format(res))
+            self.mtlog.log_entry('Info. Clients QUEUE was added at - {}'.format(res))
+            print('Info. Clients QUEUE was added at - {}'.format(res))
             return res
 
     def add_ipclient_list(self, list_name):
@@ -109,8 +109,8 @@ class MtHydra:
                 sys.stderr.write('Fail! cannot add QUEUE for {} \n'.format(ipaddr))
                 sys.exit(1)
             else:
-                self.mtlog.log_entry('Success. Clients IP was added to list - {}'.format(list_name))
-                print('Success. Clients IP was added to list - {}'.format(list_name))
+                self.mtlog.log_entry('Info. Clients IP was added to list - {}'.format(list_name))
+                print('Info. Clients IP was added to list - {}'.format(list_name))
                 res_list.append(res)
         return res_list
 
@@ -129,8 +129,8 @@ class MtHydra:
                 sys.stderr.write('Fail! cannot modify QUEUE entry for {} \n'.format(self.clientip))
                 sys.exit(1)
             else:
-                self.mtlog.log_entry('Success. Clients new QUEUE params - UL {} DL {}'.format(ul, dl))
-                print('Success. Clients new QUEUE params - UL {} DL {}'.format(ul, dl))
+                self.mtlog.log_entry('Info. Clients new QUEUE params - UL {} DL {}'.format(ul, dl))
+                print('Info. Clients new QUEUE params - UL {} DL {}'.format(ul, dl))
 
                 return res
         else:
@@ -154,8 +154,8 @@ class MtHydra:
                     sys.stderr.write('Fail! cannot modify IP list entry for {} \n'.format(self.clientip))
                     sys.exit(1)
                 else:
-                    self.mtlog.log_entry('Success. Clients new IP list - {}'.format(list_name))
-                    print('Success. Clients new IP list - {}'.format(list_name))
+                    self.mtlog.log_entry('Info. Clients new IP list - {}'.format(list_name))
+                    print('Info. Clients new IP list - {}'.format(list_name))
                     res_list.append(res)
         else:
             self.mtlog.log_entry('Fail! IP list entry for {} was not found'.format(self.clientip))
@@ -181,8 +181,8 @@ class MtHydra:
                 sys.stderr.write('Fail! cannot modify QUEUE TARGET for {} \n'.format(new_target))
                 sys.exit(1)
             else:
-                self.mtlog.log_entry('Success. Clients new QUEUE TARGET - {}'.format(new_target))
-                print('Success. Clients new QUEUE TARGET - {}'.format(new_target))
+                self.mtlog.log_entry('Info. Clients new QUEUE TARGET - {}'.format(new_target))
+                print('Info. Clients new QUEUE TARGET - {}'.format(new_target))
                 return res
         else:
             self.mtlog.log_entry('Fail! QUEUE entry for {} was not found. Nothing to change'.format(self.clientip))
@@ -204,8 +204,8 @@ class MtHydra:
                 sys.stderr.write('Fail! cannot remove QUEUE for {} \n'.format(self.clientip))
                 sys.exit(1)
             else:
-                self.mtlog.log_entry('Success. QUEUE for {} was removed'.format(self.clientip))
-                print('Success. QUEUE for {} was removed'.format(self.clientip))
+                self.mtlog.log_entry('Info. QUEUE for {} was removed'.format(self.clientip))
+                print('Info. QUEUE for {} was removed'.format(self.clientip))
                 return res
         else:
             self.mtlog.log_entry('Warning! QUEUE for {} did not exist'.format(self.clientip))
@@ -227,8 +227,8 @@ class MtHydra:
                     sys.stderr.write('Fail! cannot remove IP list entry for {} \n'.format(self.clientip))
                     sys.exit(1)
                 else:
-                    self.mtlog.log_entry('Success. IP list entry for {} was removed'.format(self.clientip))
-                    print('Success. IP list entry for {} was removed'.format(self.clientip))
+                    self.mtlog.log_entry('Info. IP list entry for {} was removed'.format(self.clientip))
+                    print('Info. IP list entry for {} was removed'.format(self.clientip))
                     res_list.append(res)
             return res_list
         else:

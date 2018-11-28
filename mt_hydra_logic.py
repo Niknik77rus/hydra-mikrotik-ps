@@ -1,4 +1,4 @@
-from mt_hydra_controller import MtHydra, MtCheckParams
+from mt_hydra_controller import MtHydra
 import sys
 
 
@@ -62,25 +62,34 @@ class MtHydraLogic:
             self.mt.mtlog.log_entry('Success. New IP-LIST for client {} - {}'.format(self.mt.clientip, ip_list))
             print('Success. New IP-LIST for client {} - {}'.format(self.mt.clientip, ip_list))
 
-    def mt_modify_ip_set(self, old_ip):
+    def mt_modify_ip_set(self, old_ip, old_list_name, ul, dl):
         new_ip_list = self.mt.clientip
         old_ip_list = list(filter(None, old_ip.split(',')))
         for i in range(len(old_ip_list)):
             if '/' not in old_ip_list[i]:
                 old_ip_list[i] = str(old_ip_list[i]) + '/32'
         added_ip_list = list(set(self.mt.clientip) - set(old_ip_list))
-        print('adding addresses: ', added_ip_list, )
+        print('adding addresses list: ', added_ip_list, )
         removed_ip_list = list(set(old_ip_list) - set(self.mt.clientip))
-        print('removing addresses ', removed_ip_list)
+        print('removing addresses list: ', removed_ip_list)
         if added_ip_list and not removed_ip_list:
             try:
                 print('trying to add new addresses')
-                self.mt.clientip = old_ip_list
-                list_name = self.mt.get_list_name(old_ip)
+                if len(old_ip_list) != 0:
+                    self.mt.clientip = old_ip_list
+                    list_name = self.mt.get_list_name(old_ip)
+                else:
+                    self.mt.mtlog.log_entry('Info. Empty list of OLD IP addresses.')
+                    list_name = old_list_name
                 self.mt.clientip = added_ip_list
                 self.mt.add_ipclient_list(list_name)
                 self.mt.clientip = new_ip_list
-                self.mt.mod_queue_target(old_ip)
+                if len(new_ip_list) > 0 and len(old_ip_list) > 0:
+                    self.mt.mod_queue_target(old_ip)
+                elif len(new_ip_list) > 0 and len(old_ip_list) == 0:
+                    self.mt.add_queue(ul, dl)
+                else:
+                    print('Fail. Unexpected error. Check source code.')
             except:
                 self.mt.mtlog.log_entry('Fail! cannot add new addresses: {}'.format(added_ip_list))
                 sys.stderr.write('Fail! cannot add new addresses: {} \n'.format(added_ip_list))
@@ -88,14 +97,19 @@ class MtHydraLogic:
             else:
                 self.mt.mtlog.log_entry('Success. added new addresses: {}'.format(added_ip_list))
                 print('Success. added new addresses: {}'.format(added_ip_list))
+                return True
 
         elif not added_ip_list and removed_ip_list:
             try:
                 print('trying to remove old addresses')
                 self.mt.clientip = removed_ip_list
                 self.mt.rmv_ipclient_list()
-                self.mt.clientip = new_ip_list
-                self.mt.mod_queue_target(old_ip)
+                if len(new_ip_list) > 0:
+                    self.mt.clientip = new_ip_list
+                    self.mt.mod_queue_target(old_ip)
+                else:
+                    self.mt.clientip = old_ip_list
+                    self.mt.rmv_queue()
             except:
                 self.mt.mtlog.log_entry('Fail! cannot remove old addresses: {}'.format(removed_ip_list))
                 sys.stderr.write('Fail! cannot remove old addresses: {}'.format(removed_ip_list))
@@ -110,10 +124,12 @@ class MtHydraLogic:
                 list_name = self.mt.get_list_name(old_ip)
                 self.mt.clientip = added_ip_list
                 self.mt.add_ipclient_list(list_name)
+                self.mt.clientip = new_ip_list
+
+
+                self.mt.mod_queue_target(old_ip)
                 self.mt.clientip = removed_ip_list
                 self.mt.rmv_ipclient_list()
-                self.mt.clientip = new_ip_list
-                self.mt.mod_queue_target(old_ip)
             except:
                 self.mt.mtlog.log_entry('Fail! cannot replace target addresses: {}'.format(removed_ip_list))
                 sys.stderr.write('Fail! cannot replace target addresses: {}'.format(removed_ip_list))

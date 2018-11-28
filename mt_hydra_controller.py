@@ -167,7 +167,7 @@ class MtHydra:
         new_target = ",".join(self.clientip)
         self.clientip = list(filter(None, old_ip.split(',')))
         for i in range(len(self.clientip)):
-            if '/' not in self.clientip[i]:
+             if len(self.clientip[i]) > 1 and '/' not in self.clientip[i]:
                 self.clientip[i] = str(self.clientip[i]) + '/32'
         queue = self.get_queue()
         if len(queue) > 0:

@@ -28,16 +28,15 @@ action = args.action
 state = args.state
 old_ip = args.old_ip
 
-if len(clientip) < 2:
-    sys.stderr.write("Info. Dummy call. Empty list of IP addresses. \n")
-    sys.exit(0)
+if ul is None or dl is None:
+    ul = dl = ''
 
 checker = MtCheckParams(clientip, ul, dl, state, action)
 mtlog = MtLogger(clientip)
 
 ip_list = neg_bal_list
 
-if checker.check_action(action) and checker.check_ip(clientip):
+if True:
     try:
         mtlog.log_entry("Trying to connect")
         print("Trying to connect")
@@ -52,15 +51,23 @@ if checker.check_action(action) and checker.check_ip(clientip):
         print("Success. Login OK")
         mt = MtHydraLogic(apiclient, clientip)
         if action == 'on':
-            checker.check_rate(ul) and checker.check_rate(dl)
-            if state in ['SERV_STATE_InsufficientFunds', 'SERV_STATE_NonPaySuspension',
-                         'SERV_STATE_TemporalSuspension']:
-                mt.mt_create(ul, dl, neg_bal_list)
+            if len(clientip) < 2:
+                print("Info. Dummy call. Empty list of new addresses")
+                sys.exit(0)
             else:
-                mt.mt_create(ul, dl, white_list)
+                #checker.check_rate(ul) and checker.check_rate(dl)
+                if state in ['SERV_STATE_InsufficientFunds', 'SERV_STATE_NonPaySuspension',
+                             'SERV_STATE_TemporalSuspension']:
+                    mt.mt_create(ul, dl, neg_bal_list)
+                else:
+                    mt.mt_create(ul, dl, white_list)
         elif action == 'change':
             if old_ip is not None:
-                mt.mt_modify_ip_set(old_ip)
+                if state in ['SERV_STATE_InsufficientFunds', 'SERV_STATE_NonPaySuspension',
+                             'SERV_STATE_TemporalSuspension']:
+                    mt.mt_modify_ip_set(old_ip, neg_bal_list, ul, dl)
+                else:
+                    mt.mt_modify_ip_set(old_ip, white_list, ul, dl)
             elif state in ['SERV_STATE_InsufficientFunds', 'SERV_STATE_NonPaySuspension',
                          'SERV_STATE_TemporalSuspension']:
                 mt.mt_modify_iplist(neg_bal_list)
@@ -77,6 +84,3 @@ if checker.check_action(action) and checker.check_ip(clientip):
                     mt.mt_modify_iplist(white_list)
         elif action == 'off':
             mt.mt_remove()
-else:
-    mtlog.log_entry("Error! params check failed \n")
-    sys.exit(1)

@@ -64,12 +64,12 @@ if True:
         elif action == 'change':
             if old_ip is not None:
                 if state in ['SERV_STATE_InsufficientFunds', 'SERV_STATE_NonPaySuspension',
-                             'SERV_STATE_TemporalSuspension']:
+                             'SERV_STATE_TemporalSuspension', 'SERV_STATE_Restricted']:
                     mt.mt_modify_ip_set(old_ip, neg_bal_list, ul, dl)
                 else:
                     mt.mt_modify_ip_set(old_ip, white_list, ul, dl)
             elif state in ['SERV_STATE_InsufficientFunds', 'SERV_STATE_NonPaySuspension',
-                         'SERV_STATE_TemporalSuspension']:
+                         'SERV_STATE_TemporalSuspension', 'SERV_STATE_Restricted']:
                 mt.mt_modify_iplist(neg_bal_list)
             elif state in ['SERV_STATE_Provision', 'SERV_STATE_Restricted']:
                 if ul is not None and dl is not None:

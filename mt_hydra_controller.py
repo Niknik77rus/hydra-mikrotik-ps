@@ -81,8 +81,10 @@ class MtHydra:
             return listname
 
     def add_queue(self, ul, dl):
-        ul = str(ul) + 'K'
-        dl = str(dl) + 'K'
+        if 'K' not in ul:
+            ul = str(ul) + 'K'
+        if 'K' not in dl:
+            dl = str(dl) + 'K'
         target = ",".join(self.clientip)
         try:
             res = self.apiclient.talk(["/queue/simple/add",
@@ -130,9 +132,12 @@ class MtHydra:
                 sys.exit(1)
             else:
                 self.mtlog.log_entry('Info. Clients new QUEUE params - UL {} DL {}'.format(ul, dl))
-                print('Info. Clients new QUEUE params - UL {} DL {}'.format(ul, dl))
+                print('Info. Clients new QUEUE params - UL {} DL {} \n'.format(ul, dl))
 
                 return res
+        elif len(queue) == 0 and len(self.get_ipclient_list()) > 0:
+            print("Info. Adding new QUEUE for client ")
+            self.add_queue(ul, dl)
         else:
             self.mtlog.log_entry('Fail! QUEUE entry for {} was not found. Nothing to change'.format(self.clientip))
             sys.stderr.write('Fail! QUEUE entry for {} was not found. Nothing to change \n'.format(self.clientip))
@@ -155,7 +160,7 @@ class MtHydra:
                     sys.exit(1)
                 else:
                     self.mtlog.log_entry('Info. Clients new IP list - {}'.format(list_name))
-                    print('Info. Clients new IP list - {}'.format(list_name))
+                    print('Info. Clients new IP list - {} '.format(list_name))
                     res_list.append(res)
         else:
             self.mtlog.log_entry('Fail! IP list entry for {} was not found'.format(self.clientip))
@@ -163,7 +168,7 @@ class MtHydra:
             sys.exit(1)
         return res_list
 
-    def mod_queue_target(self, old_ip):
+    def mod_queue_target(self, old_ip, ul, dl):
         new_target = ",".join(self.clientip)
         self.clientip = list(filter(None, old_ip.split(',')))
         for i in range(len(self.clientip)):
@@ -182,14 +187,15 @@ class MtHydra:
                 sys.exit(1)
             else:
                 self.mtlog.log_entry('Info. Clients new QUEUE TARGET - {}'.format(new_target))
-                print('Info. Clients new QUEUE TARGET - {}'.format(new_target))
+                print('Info. Clients new QUEUE TARGET - {} \n'.format(new_target))
                 return res
+        elif len(queue) == 0 and len(self.get_ipclient_list()) > 0:
+            print("Info. Adding new QUEUE for client")
+            self.add_queue(ul, dl)
         else:
             self.mtlog.log_entry('Fail! QUEUE entry for {} was not found. Nothing to change'.format(self.clientip))
             sys.stderr.write('Fail! QUEUE entry for {} was not found. Nothing to change \n'.format(self.clientip))
             sys.exit(1)
-
-
 
     def rmv_queue(self):
         queue = self.get_queue()
@@ -201,7 +207,7 @@ class MtHydra:
             except:
                 self.mtlog.log_entry('Fail! cannot remove QUEUE for {}'.format(self.clientip))
                 self.mtlog.log_entry('EXCEPTION - {}'.format(res))
-                sys.stderr.write('Fail! cannot remove QUEUE for {} \n'.format(self.clientip))
+                sys.stderr.write('Fail! cannot remove QUEUE for {} '.format(self.clientip))
                 sys.exit(1)
             else:
                 self.mtlog.log_entry('Info. QUEUE for {} was removed'.format(self.clientip))
@@ -209,7 +215,7 @@ class MtHydra:
                 return res
         else:
             self.mtlog.log_entry('Warning! QUEUE for {} did not exist'.format(self.clientip))
-            print('Warning! QUEUE for {} did not exist'.format(self.clientip))
+            print('Warning! QUEUE for {} did not exist '.format(self.clientip))
             return queue
 
     def rmv_ipclient_list(self):

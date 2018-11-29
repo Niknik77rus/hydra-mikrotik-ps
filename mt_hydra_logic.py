@@ -14,7 +14,11 @@ class MtHydraLogic:
                 self.mt.mtlog.log_entry('Fail! cannot create new client - IP/CIDR {} already exist'.format(self.mt.clientip))
                 sys.stderr.write('Fail! cannot create new client - IP/CIDR {} already exist \n'.format(self.mt.clientip))
                 sys.exit(1)
-            if len(self.mt.get_queue()) == 0:
+            if len(ul) == len(dl) == 0:
+                print('Info. No queue params. Queue was not created.')
+
+                pass
+            elif len(self.mt.get_queue()) == 0 and len(ul) > 0 and len(dl) > 0:
                 self.mt.add_queue(ul, dl)
             else:
                 self.mt.mtlog.log_entry('Fail! cannot create new client - QUEUE for {} already exist'.format(self.mt.clientip))
@@ -75,18 +79,22 @@ class MtHydraLogic:
         if added_ip_list and not removed_ip_list:
             try:
                 print('trying to add new addresses')
-                if len(old_ip_list) != 0:
-                    self.mt.clientip = old_ip_list
+                self.mt.clientip = old_ip_list
+                queue_id = self.mt.get_queue()
+                if len(old_ip_list) != 0 and len(queue_id) > 0:
                     list_name = self.mt.get_list_name(old_ip)
+                elif len(old_ip_list) != 0 and len(queue_id) == 0:
+                    list_name = old_list_name
+                    self.mt.mod_ipclient_list(old_list_name)
                 else:
                     self.mt.mtlog.log_entry('Info. Empty list of OLD IP addresses.')
                     list_name = old_list_name
                 self.mt.clientip = added_ip_list
                 self.mt.add_ipclient_list(list_name)
                 self.mt.clientip = new_ip_list
-                if len(new_ip_list) > 0 and len(old_ip_list) > 0:
-                    self.mt.mod_queue_target(old_ip)
-                elif len(new_ip_list) > 0 and len(old_ip_list) == 0:
+                if len(new_ip_list) > 0 and len(old_ip_list) > 0 and len(queue_id) > 0:
+                    self.mt.mod_queue_target(old_ip, ul, dl)
+                elif len(new_ip_list) > 0 and len(queue_id) == 0:
                     self.mt.add_queue(ul, dl)
                 else:
                     print('Fail. Unexpected error. Check source code.')
@@ -104,12 +112,16 @@ class MtHydraLogic:
                 print('trying to remove old addresses')
                 self.mt.clientip = removed_ip_list
                 self.mt.rmv_ipclient_list()
-                if len(new_ip_list) > 0:
+                self.mt.clientip = old_ip_list
+                if len(new_ip_list) > 0 and len(self.mt.get_queue()) > 0:
                     self.mt.clientip = new_ip_list
-                    self.mt.mod_queue_target(old_ip)
-                else:
+                    self.mt.mod_queue_target(old_ip, ul, dl)
+                elif len(new_ip_list) == 0:
                     self.mt.clientip = old_ip_list
                     self.mt.rmv_queue()
+                else:
+                    self.mt.clientip = new_ip_list
+                    self.mt.add_queue(ul, dl)
             except:
                 self.mt.mtlog.log_entry('Fail! cannot remove old addresses: {}'.format(removed_ip_list))
                 sys.stderr.write('Fail! cannot remove old addresses: {}'.format(removed_ip_list))
@@ -122,12 +134,17 @@ class MtHydraLogic:
                 print('trying to replace target addresses')
                 self.mt.clientip = old_ip_list
                 list_name = self.mt.get_list_name(old_ip)
+                queue_id = self.mt.get_queue()
                 self.mt.clientip = added_ip_list
-                self.mt.add_ipclient_list(list_name)
+                if len(queue_id) > 0:
+                    self.mt.add_ipclient_list(list_name)
+                else:
+                    self.mt.add_ipclient_list(old_list_name)
                 self.mt.clientip = new_ip_list
-
-
-                self.mt.mod_queue_target(old_ip)
+                if len(queue_id) > 0:
+                    self.mt.mod_queue_target(old_ip, ul, dl)
+                else:
+                    self.mt.add_queue(ul, dl)
                 self.mt.clientip = removed_ip_list
                 self.mt.rmv_ipclient_list()
             except:

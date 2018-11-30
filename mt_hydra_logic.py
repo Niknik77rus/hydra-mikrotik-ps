@@ -129,7 +129,7 @@ class MtHydraLogic:
             else:
                 self.mt.mtlog.log_entry('Success. removed old addresses: {}'.format(removed_ip_list))
                 print('Success. removed old addresses: {}'.format(removed_ip_list))
-        else:
+        elif added_ip_list and removed_ip_list:
             try:
                 print('trying to replace target addresses')
                 self.mt.clientip = old_ip_list
@@ -154,4 +154,15 @@ class MtHydraLogic:
             else:
                 self.mt.mtlog.log_entry('Success. replaced target addresses with: {}'.format(added_ip_list))
                 print('Success. replaced target addresses with: {}'.format(added_ip_list))
+        elif new_ip_list == old_ip_list:
+            print('old IP list equals new IP list')
+            queue_id = self.mt.get_queue()
+            if len(queue_id) > 0:
+                self.mt.mod_queue_target(old_ip, ul, dl)
+            else:
+                self.mt.add_queue(ul, dl)
+            self.mt.mod_ipclient_list(old_list_name)
+
+
+
 

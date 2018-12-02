@@ -14,9 +14,8 @@ class MtHydraLogic:
                 self.mt.mtlog.log_entry('Fail! cannot create new client - IP/CIDR {} already exist'.format(self.mt.clientip))
                 sys.stderr.write('Fail! cannot create new client - IP/CIDR {} already exist \n'.format(self.mt.clientip))
                 sys.exit(1)
-            if len(ul) == len(dl) == 0:
+            if len(ul) == len(ul) == 0:
                 print('Info. No queue params. Queue was not created.')
-
                 pass
             elif len(self.mt.get_queue()) == 0 and len(ul) > 0 and len(dl) > 0:
                 self.mt.add_queue(ul, dl)
@@ -66,7 +65,7 @@ class MtHydraLogic:
             self.mt.mtlog.log_entry('Success. New IP-LIST for client {} - {}'.format(self.mt.clientip, ip_list))
             print('Success. New IP-LIST for client {} - {}'.format(self.mt.clientip, ip_list))
 
-    def mt_modify_ip_set(self, old_ip, old_list_name, ul, dl):
+    def mt_modify_ip_set(self, old_ip, provided_list_name, ul, dl):
         new_ip_list = self.mt.clientip
         old_ip_list = list(filter(None, old_ip.split(',')))
         for i in range(len(old_ip_list)):
@@ -76,28 +75,61 @@ class MtHydraLogic:
         print('adding addresses list: ', added_ip_list, )
         removed_ip_list = list(set(old_ip_list) - set(self.mt.clientip))
         print('removing addresses list: ', removed_ip_list)
-        if added_ip_list and not removed_ip_list:
+        # getting existing settings
+        self.mt.clientip = old_ip_list
+        old_queue_params = self.mt.get_queue()
+        if len(old_queue_params) > 0:
+            key = list(old_queue_params.keys())[0]
+            queue_id = old_queue_params[key]['.id']
+            queue_target = old_queue_params[key]['target']
+            queue_max_limit = old_queue_params[key]['max-limit']
+            print(queue_max_limit)
+        else:
+            queue_target = new_ip_list
+            queue_max_limit = ul + '/' + dl
+        old_ip_list_params = self.mt.get_ipclient_list()
+        if len(old_ip_list_params) > 0:
+            key = list(old_ip_list_params[0].keys())[0]
+            ip_entry_id = old_ip_list_params[0][key]['.id']
+            ip_entry_list = old_ip_list_params[0][key]['list']
+        else:
+            ip_entry_list = provided_list_name
+        # performing actions with regards of result of comparing the lists
+        if new_ip_list == old_ip_list:
+            print('old IP list equals new IP list')
             try:
-                print('trying to add new addresses')
-                self.mt.clientip = old_ip_list
-                queue_id = self.mt.get_queue()
-                if len(old_ip_list) != 0 and len(queue_id) > 0:
-                    list_name = self.mt.get_list_name(old_ip)
-                elif len(old_ip_list) != 0 and len(queue_id) == 0:
-                    list_name = old_list_name
-                    self.mt.mod_ipclient_list(old_list_name)
-                else:
-                    self.mt.mtlog.log_entry('Info. Empty list of OLD IP addresses.')
-                    list_name = old_list_name
-                self.mt.clientip = added_ip_list
-                self.mt.add_ipclient_list(list_name)
-                self.mt.clientip = new_ip_list
-                if len(new_ip_list) > 0 and len(old_ip_list) > 0 and len(queue_id) > 0:
-                    self.mt.mod_queue_target(old_ip, ul, dl)
-                elif len(new_ip_list) > 0 and len(queue_id) == 0:
+                if provided_list_name != ip_entry_list:
+                    self.mt.mod_ipclient_list(provided_list_name)
+                if queue_max_limit != (ul + '/' + dl) and len(old_queue_params)>0 and len(ul) > 0:
+                    self.mt.mod_queue(ul, dl)
+                elif len(ul) > 0:
                     self.mt.add_queue(ul, dl)
                 else:
-                    print('Fail. Unexpected error. Check source code.')
+                    self.mt.rmv_queue()
+            except:
+                self.mt.mtlog.log_entry('Fail! cannot modify parameters for {}'.format(self.mt.clientip))
+                sys.stderr.write('Fail! cannot modify parameters for {} \n'.format(self.mt.clientip))
+            else:
+                self.mt.mtlog.log_entry('Success. List name or max-limit was modified for {}'.format(self.mt.clientip))
+                print('Success. List name or max-limit was modified for {}'.format(self.mt.clientip))
+                return True
+
+        elif added_ip_list and not removed_ip_list:
+            try:
+                print('trying to add new addresses')
+                if provided_list_name != ip_entry_list:
+                    self.mt.mod_ipclient_list(provided_list_name)
+                if queue_max_limit != (ul + '/' + dl) and len(old_queue_params) > 0 and len(ul) > 0:
+                    self.mt.mod_queue(ul, dl)
+                self.mt.clientip = new_ip_list
+                if len(new_ip_list) > 0 and len(old_ip_list) > 0 and len(old_queue_params) > 0 and len(ul) > 0:
+                    self.mt.mod_queue_target(old_ip, ul, dl)
+                elif len(new_ip_list) > 0 and len(old_queue_params) == 0 and len(ul) > 0:
+                    self.mt.add_queue(ul, dl)
+                else:
+                    self.mt.rmv_queue()
+                self.mt.clientip = added_ip_list
+                self.mt.add_ipclient_list(provided_list_name)
             except:
                 self.mt.mtlog.log_entry('Fail! cannot add new addresses: {}'.format(added_ip_list))
                 sys.stderr.write('Fail! cannot add new addresses: {} \n'.format(added_ip_list))
@@ -110,18 +142,22 @@ class MtHydraLogic:
         elif not added_ip_list and removed_ip_list:
             try:
                 print('trying to remove old addresses')
-                self.mt.clientip = removed_ip_list
-                self.mt.rmv_ipclient_list()
-                self.mt.clientip = old_ip_list
-                if len(new_ip_list) > 0 and len(self.mt.get_queue()) > 0:
-                    self.mt.clientip = new_ip_list
-                    self.mt.mod_queue_target(old_ip, ul, dl)
-                elif len(new_ip_list) == 0:
+                if len(new_ip_list) > 0:
+                    if provided_list_name != ip_entry_list:
+                        self.mt.mod_ipclient_list(provided_list_name)
+                    if queue_max_limit != (ul + '/' + dl) and len(old_queue_params) > 0 and len(ul) > 0:
+                        self.mt.mod_queue(ul, dl)
+                    if len(ul) == 0:
+                        self.mt.rmv_queue()
+                    else:
+                        self.mt.clientip = new_ip_list
+                        self.mt.mod_queue_target(old_ip, ul, dl)
+                    self.mt.clientip = removed_ip_list
+                    self.mt.rmv_ipclient_list()
+                else:
                     self.mt.clientip = old_ip_list
                     self.mt.rmv_queue()
-                else:
-                    self.mt.clientip = new_ip_list
-                    self.mt.add_queue(ul, dl)
+                    self.mt.rmv_ipclient_list()
             except:
                 self.mt.mtlog.log_entry('Fail! cannot remove old addresses: {}'.format(removed_ip_list))
                 sys.stderr.write('Fail! cannot remove old addresses: {}'.format(removed_ip_list))
@@ -132,36 +168,29 @@ class MtHydraLogic:
         elif added_ip_list and removed_ip_list:
             try:
                 print('trying to replace target addresses')
-                self.mt.clientip = old_ip_list
-                list_name = self.mt.get_list_name(old_ip)
-                queue_id = self.mt.get_queue()
-                self.mt.clientip = added_ip_list
-                if len(queue_id) > 0:
-                    self.mt.add_ipclient_list(list_name)
-                else:
-                    self.mt.add_ipclient_list(old_list_name)
                 self.mt.clientip = new_ip_list
-                if len(queue_id) > 0:
+                if provided_list_name != ip_entry_list:
+                    self.mt.add_ipclient_list(provided_list_name)
+                if queue_max_limit != (ul + '/' + dl) and len(old_queue_params) > 0 and len(ul) > 0:
+                    self.mt.mod_queue(ul, dl)
+
+                if len(old_queue_params) > 0 and len(ul) > 0:
                     self.mt.mod_queue_target(old_ip, ul, dl)
-                else:
+                elif len(ul) > 0:
                     self.mt.add_queue(ul, dl)
+                else:
+                    self.mt.clientip = old_ip
+                    self.mt.rmv_queue()
                 self.mt.clientip = removed_ip_list
                 self.mt.rmv_ipclient_list()
             except:
                 self.mt.mtlog.log_entry('Fail! cannot replace target addresses: {}'.format(removed_ip_list))
-                sys.stderr.write('Fail! cannot replace target addresses: {}'.format(removed_ip_list))
+                sys.stderr.write('Fail! cannot replace target addresses: {}\n'.format(removed_ip_list))
                 sys.exit(1)
             else:
                 self.mt.mtlog.log_entry('Success. replaced target addresses with: {}'.format(added_ip_list))
                 print('Success. replaced target addresses with: {}'.format(added_ip_list))
-        elif new_ip_list == old_ip_list:
-            print('old IP list equals new IP list')
-            queue_id = self.mt.get_queue()
-            if len(queue_id) > 0:
-                self.mt.mod_queue_target(old_ip, ul, dl)
-            else:
-                self.mt.add_queue(ul, dl)
-            self.mt.mod_ipclient_list(old_list_name)
+
 
 
 

@@ -22,65 +22,48 @@ parser.add_argument("--old_ip",
 
 args = parser.parse_args()
 clientip = args.ip
-ul = args.rate_limit_out
-dl = args.rate_limit_in
+ul = str(args.rate_limit_out)
+dl = str(args.rate_limit_in)
 action = args.action
 state = args.state
 old_ip = args.old_ip
 
-if ul is None or dl is None:
+if ul == dl == 'None':
     ul = dl = ''
 
 checker = MtCheckParams(clientip, ul, dl, state, action)
 mtlog = MtLogger(clientip)
 
-ip_list = neg_bal_list
-
-if True:
-    try:
-        mtlog.log_entry("Trying to connect")
-        print("Trying to connect")
-        apiclient = TikapyClient(ipmikrotik, apiport)
-        apiclient.login(user, pwd)
-    except:
-        mtlog.log_entry("Fail! no connection to IP or API. Either login failed.")
-        sys.stderr.write("Fail! no connection to IP or API. Either login failed. \n")
-        sys.exit(1)
-    else:
-        mtlog.log_entry("Success. Login OK")
-        print("Success. Login OK")
-        mt = MtHydraLogic(apiclient, clientip)
-        if action == 'on':
-            if len(clientip) < 2:
-                print("Info. Dummy call. Empty list of new addresses")
-                sys.exit(0)
+try:
+    mtlog.log_entry("Trying to connect")
+    print("Trying to connect")
+    apiclient = TikapyClient(ipmikrotik, apiport)
+    apiclient.login(user, pwd)
+except:
+    mtlog.log_entry("Fail! no connection to IP or API. Either login failed.")
+    sys.stderr.write("Fail! no connection to IP or API. Either login failed. \n")
+    sys.exit(1)
+else:
+    mtlog.log_entry("Success. Login OK")
+    print("Success. Login OK")
+    mt = MtHydraLogic(apiclient, clientip)
+    if action == 'on':
+        if len(clientip) < 2:
+            print("Info. Dummy call. Empty list of new addresses")
+            sys.exit(0)
+        else:
+            if state in ['SERV_STATE_InsufficientFunds', 'SERV_STATE_Restricted']:
+                mt.mt_create(ul, dl, neg_bal_list)
+            elif state in ['SERV_STATE_NonPaySuspension', 'SERV_STATE_TemporalSuspension']:
+                mt.mt_create(ul, dl, blocked_list)
             else:
-                #checker.check_rate(ul) and checker.check_rate(dl)
-                if state in ['SERV_STATE_InsufficientFunds', 'SERV_STATE_NonPaySuspension',
-                             'SERV_STATE_TemporalSuspension']:
-                    mt.mt_create(ul, dl, neg_bal_list)
-                else:
-                    mt.mt_create(ul, dl, white_list)
-        elif action == 'change':
-            if old_ip is not None:
-                if state in ['SERV_STATE_InsufficientFunds', 'SERV_STATE_NonPaySuspension',
-                             'SERV_STATE_TemporalSuspension', 'SERV_STATE_Restricted']:
-                    mt.mt_modify_ip_set(old_ip, neg_bal_list, ul, dl)
-                else:
-                    mt.mt_modify_ip_set(old_ip, white_list, ul, dl)
-            elif state in ['SERV_STATE_InsufficientFunds', 'SERV_STATE_NonPaySuspension',
-                         'SERV_STATE_TemporalSuspension', 'SERV_STATE_Restricted']:
-                mt.mt_modify_iplist(neg_bal_list)
-            elif state in ['SERV_STATE_Provision', 'SERV_STATE_Restricted']:
-                if ul is not None and dl is not None:
-                    if checker.check_rate(ul) and checker.check_rate(dl):
-                        mt.mt_modify_queue(ul, dl)
-                        mt.mt_modify_iplist(white_list)
-                    else:
-                        mtlog.log_entry("Error! queue params check failed")
-                        sys.stderr.write("Error! queue params check failed \n")
-                        sys.exit(1)
-                else:
-                    mt.mt_modify_iplist(white_list)
-        elif action == 'off':
-            mt.mt_remove()
+                mt.mt_create(ul, dl, white_list)
+    elif action == 'change':
+        if state in ['SERV_STATE_InsufficientFunds', 'SERV_STATE_Restricted']:
+            mt.mt_modify_ip_set(old_ip, neg_bal_list, ul, dl)
+        elif state in ['SERV_STATE_NonPaySuspension', 'SERV_STATE_TemporalSuspension']:
+            mt.mt_modify_ip_set(old_ip, blocked_list, ul, dl)
+        else:
+            mt.mt_modify_ip_set(old_ip, white_list, ul, dl)
+    elif action == 'off':
+        mt.mt_remove()

@@ -32,15 +32,15 @@ class MtHydra:
     def get_queue(self):
         target = ",".join(self.clientip)
         try:
-            res = self.apiclient.talk(["/queue/simple/print", "?target=" + target, "=.proplist=.id"])
+            res = self.apiclient.talk(["/queue/simple/print", "?target=" + target, "=.proplist=.id,target,max-limit"])
         except:
             self.mtlog.log_entry('Warning! cannot get clients QUEUE for {}'.format(target))
             self.mtlog.log_entry('EXCEPTION - {}'.format(res))
             sys.stderr.write("Warning! cannot get clients queue\n")
             sys.exit(1)
         else:
-            self.mtlog.log_entry('Info. Clients QUEUE position found at - {}'.format(res))
-            print('Info. Clients QUEUE position found at - {}'.format(res))
+            self.mtlog.log_entry('Info. Clients QUEUE was found with params - {}'.format(res))
+            print('Info. Clients QUEUE was found with params  - {}'.format(res))
             return res
 
     def get_ipclient_list(self):
@@ -50,41 +50,24 @@ class MtHydra:
             if '/32' in ipaddr:
                 ipaddr = ipaddr[:ipaddr.find("/")]
             try:
-                res = self.apiclient.talk(["/ip/firewall/address-list/print", "?address=" + ipaddr, "=.proplist=.id"])
+                res = self.apiclient.talk(["/ip/firewall/address-list/print", "?address=" + ipaddr, "=.proplist=.id,list"])
             except:
-                self.mtlog.log_entry('Warning! cannot get clients IP list position for {}'.format(ipaddr))
+                self.mtlog.log_entry('Warning! cannot get clients IP list entry for {}'.format(ipaddr))
                 self.mtlog.log_entry('EXCEPTION - {}'.format(res))
-                sys.stderr.write('Warning! cannot get clients IP list position\n')
+                sys.stderr.write('Warning! cannot get clients IP list entry\n')
                 sys.exit(1)
             else:
-                self.mtlog.log_entry('Info. clients IP position was found at - {}'.format(res))
-                print('Info. clients IP position was found at - {}'.format(res))
+                self.mtlog.log_entry('Info. clients IP was found with params - {}'.format(res))
+                print('Info. clients IP was found with params  - {}'.format(res))
                 res_list.append(res)
+        print(res_list)
         return res_list
-
-    def get_list_name(self, old_ip):
-        ipaddr = list(filter(None, old_ip.split(',')))[0]
-        if '/32' in ipaddr:
-            ipaddr = ipaddr[:ipaddr.find("/")]
-        try:
-            res = self.apiclient.talk(["/ip/firewall/address-list/print", "?address=" + ipaddr, "=.proplist=.id,list"])
-        except:
-            self.mtlog.log_entry('Warning! cannot get LIST NAME for {}'.format(ipaddr))
-            self.mtlog.log_entry('EXCEPTION - {}'.format(res))
-            sys.stderr.write('Warning! cannot get LIST NAME\n')
-            sys.exit(1)
-        else:
-            key = list(res.keys())[0]
-            listname = res[key]['list']
-            self.mtlog.log_entry('Info. found clients LIST NAME - {}'.format(listname))
-            print('Info. found clients LIST NAME - {}'.format(listname))
-            return listname
 
     def add_queue(self, ul, dl):
         if 'K' not in ul:
-            ul = str(ul) + 'K'
+            ul = ul + 'K'
         if 'K' not in dl:
-            dl = str(dl) + 'K'
+            dl = dl + 'K'
         target = ",".join(self.clientip)
         try:
             res = self.apiclient.talk(["/queue/simple/add",
@@ -96,7 +79,7 @@ class MtHydra:
             sys.exit(1)
         else:
             self.mtlog.log_entry('Info. Clients QUEUE was added at - {}'.format(res))
-            print('Info. Clients QUEUE was added at - {}'.format(res))
+            print('Info. Clients QUEUE was added at - {} \n'.format(res))
             return res
 
     def add_ipclient_list(self, list_name):
@@ -108,7 +91,7 @@ class MtHydra:
             except:
                 self.mtlog.log_entry('Fail! cannot add IP list entry for {}'.format(ipaddr))
                 self.mtlog.log_entry('EXCEPTION - {}'.format(res))
-                sys.stderr.write('Fail! cannot add QUEUE for {} \n'.format(ipaddr))
+                sys.stderr.write('Fail! cannot add IP list entry for {} \n'.format(ipaddr))
                 sys.exit(1)
             else:
                 self.mtlog.log_entry('Info. Clients IP was added to list - {}'.format(list_name))
@@ -117,8 +100,8 @@ class MtHydra:
         return res_list
 
     def mod_queue(self, ul, dl):
-        ul = str(ul) + 'K'
-        dl = str(dl) + 'K'
+        ul = ul + 'K'
+        dl = dl + 'K'
         queue = self.get_queue()
         if len(queue) > 0:
             key = list(queue.keys())[0]
@@ -133,10 +116,9 @@ class MtHydra:
             else:
                 self.mtlog.log_entry('Info. Clients new QUEUE params - UL {} DL {}'.format(ul, dl))
                 print('Info. Clients new QUEUE params - UL {} DL {} \n'.format(ul, dl))
-
                 return res
         elif len(queue) == 0 and len(self.get_ipclient_list()) > 0:
-            print("Info. Adding new QUEUE for client ")
+            print("Info. State changed. Adding new QUEUE for client\n")
             self.add_queue(ul, dl)
         else:
             self.mtlog.log_entry('Fail! QUEUE entry for {} was not found. Nothing to change'.format(self.clientip))
@@ -189,7 +171,7 @@ class MtHydra:
                 self.mtlog.log_entry('Info. Clients new QUEUE TARGET - {}'.format(new_target))
                 print('Info. Clients new QUEUE TARGET - {} \n'.format(new_target))
                 return res
-        elif len(queue) == 0 and len(self.get_ipclient_list()) > 0:
+        elif len(queue) == 0 and len(self.get_ipclient_list()[0]) > 0:
             print("Info. Adding new QUEUE for client")
             self.add_queue(ul, dl)
         else:

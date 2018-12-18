@@ -1,4 +1,3 @@
-ipmikrotik = "192.168.1.101"
 user = "hydra"
 pwd = "Winter@2017"
 white_list = "hydra_auth_list"

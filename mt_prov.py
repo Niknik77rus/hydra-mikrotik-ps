@@ -19,6 +19,8 @@ parser.add_argument("--rate_limit_out",
                     help="subscribers rate-limit-out")
 parser.add_argument("--old_ip",
                     help="subscribers old ip list")
+parser.add_argument("--nas_ip",
+                    help="subscribers NAS ip")
 
 args = parser.parse_args()
 clientip = args.ip
@@ -27,6 +29,7 @@ dl = str(args.rate_limit_in)
 action = args.action
 state = args.state
 old_ip = args.old_ip
+ipmikrotik = args.nas_ip
 
 if ul == dl == 'None':
     ul = dl = ''

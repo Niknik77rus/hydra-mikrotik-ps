@@ -70,8 +70,10 @@ class MtHydra:
             dl = dl + 'K'
         target = ",".join(self.clientip)
         try:
+            #240222019 nnk - add queue name prefix with 1 address of provided list
             res = self.apiclient.talk(["/queue/simple/add",
-                                       "=target=" + target, "=max-limit=" + ul + "/" + dl, "=.proplist=.id"])
+                                       "=target=" + target, "=name=hydra_auth_" + self.clientip[0],
+                                       "=max-limit=" + ul + "/" + dl, "=.proplist=.id"])
         except:
             self.mtlog.log_entry('Fail! cannot add QUEUE for {}'.format(target))
             self.mtlog.log_entry('EXCEPTION - {}'.format(res))
@@ -152,6 +154,7 @@ class MtHydra:
 
     def mod_queue_target(self, old_ip, ul, dl):
         new_target = ",".join(self.clientip)
+        new_prefix = self.clientip[0]
         self.clientip = list(filter(None, old_ip.split(',')))
         for i in range(len(self.clientip)):
              if len(self.clientip[i]) > 1 and '/' not in self.clientip[i]:
@@ -161,7 +164,9 @@ class MtHydra:
             key = list(queue.keys())[0]
             queue_id = queue[key]['.id']
             try:
-                res = self.apiclient.talk(["/queue/simple/set", "=target=" + new_target, "=.id=" + queue_id, ])
+                # 240222019 nnk - add queue name prefix with 1 address of provided list
+                res = self.apiclient.talk(["/queue/simple/set", "=target=" + new_target,
+                                           "=name=hydra_auth_" + new_prefix,"=.id=" + queue_id, ])
             except:
                 self.mtlog.log_entry('Fail! cannot modify QUEUE TARGET for {}'.format(new_target))
                 self.mtlog.log_entry('EXCEPTION - {}'.format(res))

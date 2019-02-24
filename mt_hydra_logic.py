@@ -77,6 +77,7 @@ class MtHydraLogic:
         print('removing addresses list: ', removed_ip_list)
         # getting existing settings
         self.mt.clientip = old_ip_list
+        print("MANGLE set clientip to OLD-IP", old_ip_list)
         old_queue_params = self.mt.get_queue()
         if len(old_queue_params) > 0:
             key = list(old_queue_params.keys())[0]
@@ -165,24 +166,35 @@ class MtHydraLogic:
             else:
                 self.mt.mtlog.log_entry('Success. removed old addresses: {}'.format(removed_ip_list))
                 print('Success. removed old addresses: {}'.format(removed_ip_list))
+
+
         elif added_ip_list and removed_ip_list:
             try:
                 print('trying to replace target addresses')
                 self.mt.clientip = new_ip_list
-                if provided_list_name != ip_entry_list:
-                    self.mt.add_ipclient_list(provided_list_name)
+
+                #adding new addresses with provided LIST NAME
+                self.mt.add_ipclient_list(provided_list_name)
+
+                #changing queue limits, using OLD IP
                 if queue_max_limit != (ul + '/' + dl) and len(old_queue_params) > 0 and len(ul) > 0:
+                    self.mt.clientip = old_ip_list
                     self.mt.mod_queue(ul, dl)
 
+                # changing queue IP target
                 if len(old_queue_params) > 0 and len(ul) > 0:
+                    self.mt.clientip = new_ip_list
                     self.mt.mod_queue_target(old_ip, ul, dl)
                 elif len(ul) > 0:
                     self.mt.add_queue(ul, dl)
                 else:
-                    self.mt.clientip = old_ip
+                    self.mt.clientip = old_ip_list
                     self.mt.rmv_queue()
+
+                #removing OLD IP entries
                 self.mt.clientip = removed_ip_list
                 self.mt.rmv_ipclient_list()
+
             except:
                 self.mt.mtlog.log_entry('Fail! cannot replace target addresses: {}'.format(removed_ip_list))
                 sys.stderr.write('Fail! cannot replace target addresses: {}\n'.format(removed_ip_list))
